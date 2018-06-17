@@ -1,19 +1,9 @@
 package mixin
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"sync"
-)
-
-var (
-	// ErrCannotAssign is invoked if receiver type does not match the stored value.
-	ErrCannotAssign = errors.New("cannot assign the value to the provided receiver")
-	// ErrNotAPointer is returned if provided receiver is not a pointer type.
-	ErrNotAPointer = errors.New("receiver is not a pointer")
-	// ErrNotAvailable means that requested property does not exist in the storage.
-	ErrNotAvailable = errors.New("property is not available")
 )
 
 // PropertyValidator knows the name of the property that should be validated and
