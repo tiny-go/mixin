@@ -10,6 +10,8 @@ var (
 	// ErrNotAvailable means that requested property does not exist in the storage.
 	ErrNotAvailable = errors.New("property is not available")
 
+	// ErrImmutable is invoked if the value is not allowed to be changed.
+	ErrImmutable = errors.New("value cannot be changed")
 	// ErrNotAString is returned if provided value is not a string.
 	ErrNotAString = errors.New("value is not a string")
 	// ErrNotABoolean is returned if provided value is not a boolean.

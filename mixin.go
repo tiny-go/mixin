@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"sync"
@@ -10,10 +11,10 @@ import (
 // contains an actual validator func.
 type PropertyValidator interface {
 	fmt.Stringer
-	Validate(interface{}) error
+	Validate(Mixin, interface{}) error
 }
 
-// Mixin is responsible for the management of the  custom object properties
+// Mixin is responsible for the management of the custom object properties
 // (implies an ability to save/retrieve the properties from the object by name).
 type Mixin interface {
 	// GetProperty should read the value of custom (user-defined) parameter and put to
@@ -28,14 +29,14 @@ type Mixin interface {
 type mixin struct {
 	mu         sync.Mutex
 	storage    map[string]interface{}
-	validators map[string][]func(interface{}) error
+	validators map[string][]func(Mixin, interface{}) error
 }
 
 // New creates a new Mixin.
 func New(validators ...PropertyValidator) Mixin {
 	mixin := &mixin{
 		storage:    make(map[string]interface{}),
-		validators: make(map[string][]func(interface{}) error),
+		validators: make(map[string][]func(Mixin, interface{}) error),
 	}
 	for _, validator := range validators {
 		mixin.validators[validator.String()] = append(mixin.validators[validator.String()], validator.Validate)
@@ -70,7 +71,7 @@ func (m *mixin) GetProperty(name string, recv interface{}) (err error) {
 func (m *mixin) SetProperty(name string, value interface{}) error {
 	if validators, ok := m.validators[name]; ok {
 		for _, validator := range validators {
-			if err := validator(value); err != nil {
+			if err := validator(m, value); err != nil {
 				return err
 			}
 		}
@@ -79,4 +80,8 @@ func (m *mixin) SetProperty(name string, value interface{}) error {
 	m.storage[name] = value
 	m.mu.Unlock()
 	return nil
+}
+
+func (m *mixin) MarshalJSON() ([]byte, error) {
+	return json.Marshal(m.storage)
 }
