@@ -1,6 +1,7 @@
 package mixin
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -80,6 +81,12 @@ func (m *mixin) SetProperty(name string, value interface{}) error {
 	m.storage[name] = value
 	m.mu.Unlock()
 	return nil
+}
+
+// Value implements the database/sql/driver Valuer interface (needed for database
+// drivers in order to store properties to DB).
+func (m *mixin) Value() (driver.Value, error) {
+	return json.Marshal(m.storage)
 }
 
 func (m *mixin) MarshalJSON() ([]byte, error) {
