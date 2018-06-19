@@ -1,0 +1,16 @@
+package mixin
+
+// StringValidator checks if provided value is a string.
+type StringValidator string
+
+func (sv StringValidator) String() string {
+	return string(sv)
+}
+
+// Validate is an actual validator func.
+func (StringValidator) Validate(_ Mixin, v interface{}) error {
+	if _, ok := v.(string); ok {
+		return nil
+	}
+	return ErrNotAString
+}
