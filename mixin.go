@@ -24,6 +24,9 @@ type Mixin interface {
 	GetProperty(name string, recv interface{}) error
 	// SetProperty should add a custom parameter to the object (or replace if exists).
 	SetProperty(name string, value interface{}) error
+	// Range should call the provided func sequentially for each available property.
+	// If func returns false, Range should stop the iteration.
+	Range(func(property string, value interface{}) bool)
 }
 
 // mixin is a PropertyManager implementation.
@@ -81,6 +84,16 @@ func (m *mixin) SetProperty(name string, value interface{}) error {
 	m.storage[name] = value
 	m.mu.Unlock()
 	return nil
+}
+
+// Range calls the provided func sequentially for each available property.
+// If func returns false, Range stops the iteration.
+func (m *mixin) Range(f func(property string, value interface{}) bool) {
+	for k, v := range m.storage {
+		if !f(k, v) {
+			break
+		}
+	}
 }
 
 // Value implements the database/sql/driver Valuer interface (needed for database
