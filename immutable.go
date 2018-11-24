@@ -1,4 +1,4 @@
-package mixin
+package property
 
 // ImmutableValidator prevents value from being changed.
 type ImmutableValidator string
@@ -9,7 +9,7 @@ func (iv ImmutableValidator) String() string {
 
 // Validate is an actual validator func. It allows to set the value, but it cannot
 // be changed.
-func (iv ImmutableValidator) Validate(m Mixin, _ interface{}) error {
+func (iv ImmutableValidator) Validate(m Manager, _ interface{}) error {
 	var recv interface{}
 	if m.GetProperty(iv.String(), &recv) == ErrNotAvailable {
 		return nil

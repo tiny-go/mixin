@@ -1,4 +1,4 @@
-package mixin
+package property
 
 import (
 	"database/sql/driver"
@@ -8,16 +8,16 @@ import (
 	"sync"
 )
 
-// PropertyValidator knows the name of the property that should be validated and
-// contains an actual validator func.
-type PropertyValidator interface {
+// Validator knows the name of the property that should be validated and contains
+// an actual validator func.
+type Validator interface {
 	fmt.Stringer
-	Validate(Mixin, interface{}) error
+	Validate(Manager, interface{}) error
 }
 
-// Mixin is responsible for the management of the custom object properties
+// Manager is responsible for the management of the custom object properties
 // (implies an ability to save/retrieve the properties from the object by name).
-type Mixin interface {
+type Manager interface {
 	// GetProperty should read the value of custom (user-defined) parameter and put to
 	// the provided receiver (should be a pointer). It returns an error in case if
 	// parameter does not exist or receiver has an invalid type.
@@ -29,28 +29,28 @@ type Mixin interface {
 	Range(func(property string, value interface{}) bool)
 }
 
-// mixin is a PropertyManager implementation.
-type mixin struct {
+// MapManager is a PropertyManager implementation.
+type MapManager struct {
 	mu         sync.Mutex
 	storage    map[string]interface{}
-	validators map[string][]func(Mixin, interface{}) error
+	validators map[string][]func(Manager, interface{}) error
 }
 
-// New creates a new Mixin.
-func New(validators ...PropertyValidator) Mixin {
-	mixin := &mixin{
+// NewManager creates a new property manager.
+func NewManager(validators ...Validator) *MapManager {
+	manager := &MapManager{
 		storage:    make(map[string]interface{}),
-		validators: make(map[string][]func(Mixin, interface{}) error),
+		validators: make(map[string][]func(Manager, interface{}) error),
 	}
 	for _, validator := range validators {
-		mixin.validators[validator.String()] = append(mixin.validators[validator.String()], validator.Validate)
+		manager.validators[validator.String()] = append(manager.validators[validator.String()], validator.Validate)
 	}
-	return mixin
+	return manager
 }
 
 // GetProperty retrieves custom object property (if exists) and assignes it to the
 // provided receiver (if possible).
-func (m *mixin) GetProperty(name string, recv interface{}) (err error) {
+func (m *MapManager) GetProperty(name string, recv interface{}) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = ErrCannotAssign
@@ -72,7 +72,7 @@ func (m *mixin) GetProperty(name string, recv interface{}) (err error) {
 }
 
 // SetProperty stores custom object property.
-func (m *mixin) SetProperty(name string, value interface{}) error {
+func (m *MapManager) SetProperty(name string, value interface{}) error {
 	if validators, ok := m.validators[name]; ok {
 		for _, validator := range validators {
 			if err := validator(m, value); err != nil {
@@ -88,7 +88,7 @@ func (m *mixin) SetProperty(name string, value interface{}) error {
 
 // Range calls the provided func sequentially for each available property.
 // If func returns false, Range stops the iteration.
-func (m *mixin) Range(f func(property string, value interface{}) bool) {
+func (m *MapManager) Range(f func(property string, value interface{}) bool) {
 	for k, v := range m.storage {
 		if !f(k, v) {
 			break
@@ -98,10 +98,13 @@ func (m *mixin) Range(f func(property string, value interface{}) bool) {
 
 // Value implements the database/sql/driver Valuer interface (needed for database
 // drivers in order to store properties to DB).
-func (m *mixin) Value() (driver.Value, error) {
+func (m *MapManager) Value() (driver.Value, error) {
 	return json.Marshal(m.storage)
 }
 
-func (m *mixin) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements custom JSON marshaller.
+func (m *MapManager) MarshalJSON() ([]byte, error) {
 	return json.Marshal(m.storage)
 }
+
+// TODO: implement sql.Scanner interface

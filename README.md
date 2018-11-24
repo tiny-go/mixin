@@ -1,2 +1,2 @@
-# mixin
-This packages allows to add/validate/retrieve custom object properties
+# property
+This package allows to add/validate/retrieve custom object properties
